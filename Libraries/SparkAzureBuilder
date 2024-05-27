@@ -1,0 +1,14 @@
+import os
+from dotenv import load_dotenv
+from pyspark.sql import SparkSession
+
+class SparkAzure:
+    
+    def __init__(self, storage_account=None, sas_key=None, jar_dir=None)
+        
+        if storage_account = None:
+            self.storage_account_name = storage_account_name = os.getenv('BLOBSTORAGE')
+        if sas_key = None:
+            self.sas_key = sas_key = os.getenv('BLOBSASKEY')
+        if jar_dir = None:
+            self.jar_dir = jar_dir = os.getenv('JAR_DIR')
