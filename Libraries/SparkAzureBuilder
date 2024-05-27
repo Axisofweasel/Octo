@@ -12,3 +12,44 @@ class SparkAzure:
             self.sas_key = sas_key = os.getenv('BLOBSASKEY')
         if jar_dir = None:
             self.jar_dir = jar_dir = os.getenv('JAR_DIR')
+        return
+            
+    def jar_list(self, jar_dir=None):
+        
+        if jar_dir = None:
+            files = os.listdir(jar_dir)
+        jar_files = [file for file in files if file.endswith('.jar')]
+        jar_paths = [os.path.join(jar_dir, jar_file) for jar_file in jar_files]
+        self.jar_paths = ','.join(jar_paths)
+        return
+    
+    def spark_session_builder(self):
+
+        self.spark = SparkSession.builder \
+                .appName("Azure Blob Storage Access").getOrCreate()
+        return self.spark
+    
+    def spark_session_builder_jar(self):
+        
+        self.spark = SparkSession.builder \
+                .appName("Azure Blob Storage Access")\
+                .config("spark.jars", self.jar_paths)\
+                .getOrCreate()
+        return spark
+    
+    def spark_storage_name(self, container_name):
+        
+        self.container_name = container_name
+        self.spark.conf.set(
+        f"fs.azure.sas.{container_name}.{self.storage_account_name}.blob.core.windows.net",
+        f"{self.sas_key}"
+        )
+
+        return spark
+    
+    def write_to_wasbs():
+
+        stringpath = f"wasbs://{container_name}@{storage_account_name}.blob.core.windows.net/"
+
+        return stringpath
+    
