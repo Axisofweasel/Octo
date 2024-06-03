@@ -1,6 +1,7 @@
 #Testing file
 TestAPI.ipynb
 storage_test_file.txt
+AzureStorageTest.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
