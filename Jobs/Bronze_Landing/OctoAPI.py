@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 import datetime
 from abc import ABC, abstractmethod
+import pyspark.sql.functions as F 
+from datetime import datetime
 
 load_dotenv()
 
@@ -155,7 +157,7 @@ class OctopusApi(ABC):
             >>> consumption_url_gen(util='Electric', serial_list=1, pagesize=50, startdatetime='2024-05-30T01:00:00+01:00', enddatetime='2024-06-01T01:00:00+01:00', orderby='date')
             'https://example.com/electricity?mpan=123456789&serial_number=987654321&pagesize=50&period_from=2024-05-30T01:00:00+01:00&period_to=2024-06-01T01:00:00+01:00&orderby=date'
         """
-        
+        self.util = util
         if util == 'Electric':
             con_url = self.url_dict['elec_con'].format(mpan=self.elec_details['mpan'], serial_number=self.elec_details['serial_number'][serial_list])
         elif util == 'Gas':
@@ -173,20 +175,20 @@ class OctopusApi(ABC):
             if not isinstance(pagesize, int):
                 raise TypeError('Pagesize must be an integer.')
             con_url += '&' if '?' in con_url else '?'
-            con_url += url_dict['pagesize'].format(pagesize = pagesize)
+            con_url += self.url_dict['pagesize'].format(pagesize = pagesize)
         if startdatetime is not None:
             validate_iso8601(startdatetime)
             con_url += '&' if '?' in con_url else '?'
-            con_url += url_dict['period_from'].format(startdatetime = startdatetime)
+            con_url += self.url_dict['period_from'].format(startdatetime = startdatetime)
         if enddatetime is not None:
             validate_iso8601(enddatetime)
             con_url += '&' if '?' in con_url else '?'
-            con_url += url_dict['period_from'].format(enddatetime = enddatetime)
+            con_url += self.url_dict['period_from'].format(enddatetime = enddatetime)
         if orderby is not None:
             if orderby not in ['period', '-period']:
                 raise ValueError("OrderBy must be either 'period' or '-period' ")
             con_url += '&' if '?' in con_url else '?'
-            con_url += url_dict['orderby'].format(orderby = orderby)
+            con_url += self.url_dict['orderby'].format(orderby = orderby)
 
         self.con_url = con_url
         print('consumption_url_gen')
@@ -207,9 +209,9 @@ class OctopusApi(ABC):
             requests.exceptions.RequestException: For other types of requests-related errors.
             ValueError: If the response cannot be parsed as JSON or required keys are missing.
         """
-        print('consumption_get')
         try:
             consumption_response = requests.get(url = con_url, auth=(self.key,''))
+            print('consumption_get')
             consumption_response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             print(f'HTTP Error occurred: {e}')
@@ -226,6 +228,7 @@ class OctopusApi(ABC):
         
         try:
             consumption_dict = consumption_response.json()
+            print('generating consumption dict')
         except ValueError as e:
             print(f'Error parsing JSON: {e}')
         next_url = consumption_response.json()['next']
@@ -236,28 +239,31 @@ class OctopusApi(ABC):
         return consumption_dict, next_url 
     
 
-    def dataframe_writer(self, spark):
+    def dataframe_writer(self, spark, container_name, storage_account_name):
         print('dataframewriter')
         while self.con_url is not None:
-            self.consumption_dict, self.con_url = self.consumption_get(self, self.con_url)
-            elec_consumption_df = spark.createDataFrame([c for c in self.consumption_dict['results']])
-            elec_consumption_df = elec_consumption_df.select('interval_start','interval_end','consumption')
-            max_date = (elec_consumption_df.agg(F.max(F.col('interval_end'))).collect()[0][0])
+            
+            self.consumption_dict, self.con_url = self.consumption_get( self.con_url)
+            consumption_df = spark.createDataFrame([c for c in self.consumption_dict['results']])
+            consumption_df = consumption_df.select('interval_start','interval_end','consumption')
+            
+            max_date = (consumption_df.agg(F.max(F.col('interval_end'))).collect()[0][0])
             max_date = datetime.strptime(max_date, '%Y-%m-%dT%H:%M:%S%z')
             year = max_date.year
             month = max_date.month
-            meter = elec_details['serial_number'][0]
+            meter = self.elec_details['serial_number'][0]
             file_date = max_date.strftime('%Y_%M_%d_%H_%M_%S')
             file_name = f'{meter}_{file_date}'
-            #path_to_data = f'{meter}/{year}/{month}/{file_name}.parquet'
-            #wasbs_path = f"wasbs://{container_name}@{storage_account_name}.blob.core.windows.net/{path_to_data}"
-            #try:
-            #    elec_consumption_df.write.mode("overwrite").parquet(wasbs_path)
-            #except:
-            #    print(f'Failed to write file:{file_name}')
-            #else:
-            #    print(f'Wrote file: {file_name}')
-            #finally:
-            #    if elec_consumption_df.is_cached:
-            #            elec_consumption_df.unpersist()
-            print(elec_consumption_df)
+            
+            path_to_data = f'{self.util}{meter}/{year}/{month}/{file_name}.parquet'
+            wasbs_path = f"wasbs://{container_name}@{storage_account_name}.blob.core.windows.net/{path_to_data}"
+            try:
+                consumption_df.write.mode("overwrite").parquet(wasbs_path)
+            except:
+                print(f'Failed to write file:{file_name}')
+                raise
+            else:
+                print(f'Wrote file: {file_name}')
+            finally:
+                if consumption_df.is_cached:
+                        consumption_df.unpersist()
