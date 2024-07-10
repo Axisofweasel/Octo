@@ -9,6 +9,6 @@ Transform: Process and clean the data using PySpark.
 Load: Stage the transformed data into Azure Data Lake Storage and subsequently load it into a Dockerized MS-SQL Server instance as a dimensional model.
 Serve: Maybe to a dockerised grafana instance or maybe to Raspberry Pi screen
 
-
+Octopus API [Docs](https://developer.octopus.energy/rest/guides/endpoints)
 
 Currently a work in progress.
