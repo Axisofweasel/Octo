@@ -1,8 +1,9 @@
 
 import json
 import os
-from SparkAzureBuilder import SparkAzure
-from OctoAPI import OctopusApi
+from Utils.spark_azure_builder import SparkAzure
+from Utils.octo_api import OctopusApi
+from Utils.sql_utils import SqlUtil
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pyspark.sql import Row
