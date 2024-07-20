@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
@@ -63,6 +65,35 @@ class SparkAzure:
         stringpath = f"wasbs://{self.container_name}@{self.storage_account_name}.blob.core.windows.net/"
 
         return stringpath
+    
+    def jdbc_config(self, SERVER = None; str, DATABASE = None; str):
+        
+        self.JDBC_SERVER = SERVER
+        self.JDBC_DATABASE = DATABASE
+
+        self.coconnectionString = connectionString = f'jdbc:sqlserver://{SERVER}:1433;database={DATABASE}'
+        
+        self.spark = self.spark
+        
+        return spark
+    
+    def jdbc_writer(DATAFRAME=None; dataframe, TABLE=None; str, USERNAME = None;Str, PASSWORD = None;str, TRUNCATE='true';str WRITEMODE='overwrite';str, ENCRYPT='false';str):
+    
+        (DATAFRAME
+         .write
+         .format('jdbc')
+         .option('url',f'{self.connectionString}')
+         .option('dbtable',f'{TABLE}')
+         .option('user',f'{USERNAME}')
+         .option('password',f'{PASSWORD}')
+         .option('encrypt',f'{ENCRYPT}')
+         .option('truncate',f'{TRUNCATE}')
+         .mode(f'{WRITEMODE}')
+         .save())
+            
+        count = DATAFRAME.count()
+        
+        return print(f'{count} rows written to {self.JDBC_DATABASE}.{TABLE} as {WRITEMODE}')
     
     def kill_spark_session():
         """

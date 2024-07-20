@@ -1,4 +1,3 @@
-
 import json
 import os
 from Utils.spark_azure_builder import SparkAzure
