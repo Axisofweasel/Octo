@@ -81,6 +81,8 @@ class SqlUtil:
             self.logging_df.to_sql(name=self.schema, con=self.engine, if_exists=self.if_exists, index=self.index)
             print('Logging succesful:{rows} inserted to {self.schema}.{self.table} ')
         except ValueError(f'Table {self.table} already exists and if_exist set to {self.if_exists}'):
+            raise
+        
         return
         
         
