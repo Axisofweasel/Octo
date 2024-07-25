@@ -1,6 +1,6 @@
 import json
 import os
-from Utils.spark_azure_builder import SparkAzure
+from Octo.Utils.spark_builder import SparkManager
 from Utils.octo_api import OctopusApi
 from Utils.sql_utils import SqlUtil
 from dotenv import load_dotenv
@@ -22,7 +22,7 @@ jar_dir = os.getenv('JAR_DIR')
 #Start Spark Session
 
 
-spark = SparkAzure()
+spark = SparkManager()
 spark = spark.spark_session_builder_jar(jar_dir, container_name)
 
 # Elec Import Serial: 23J0439951
@@ -35,4 +35,4 @@ apiCaller.extract_elec_details()
 apiCaller.consumption_url_gen(util ='Electric',pagesize=5000)
 
 #loop through api calls to collect data
-apiCaller.dataframe_writer(spark=spark,container_name=container_name, storage_account_name=storage_account_name)
+apiCaller.dataframe_writer(spark=spark, container_name=container_name, storage_account_name=storage_account_name)
