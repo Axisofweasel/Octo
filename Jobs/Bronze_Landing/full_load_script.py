@@ -1,13 +1,13 @@
 import json
 import os
-from Octo.Utils.spark_builder import SparkManager
+from Utils.spark_utils import SparkSessionFactory
 from Utils.octo_api import OctopusApi
-from Utils.sql_utils import SqlUtil
+from Utils.common_sql_utils import SqlUtil
 from dotenv import load_dotenv
+from datetime import datetime
 from pyspark.sql import SparkSession
 from pyspark.sql import Row
-import pyspark.sql.functions as F 
-from datetime import datetime
+from pyspark.sql import functions as F 
 from pyspark.sql.types import DateType, IntegerType, StringType
 
 key = os.getenv('OCTOAPIKEY')
@@ -22,8 +22,7 @@ jar_dir = os.getenv('JAR_DIR')
 #Start Spark Session
 
 
-spark = SparkManager()
-spark = spark.spark_session_builder_jar(jar_dir, container_name)
+spark = SparkSessionFactory.create_spark_session(jar_dir)
 
 # Elec Import Serial: 23J0439951
 # Elec Export Serial: 21M0116985

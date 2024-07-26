@@ -29,19 +29,19 @@ class SqlUtil(ABC):
                 f"encrypt={encrypt}"
             )
         
-        self.engine = create_engine(f'mssql+pyodbc:///?odbc_connect={params}')
+        self.engine = create_engine(f'mssql+pyodbc:///?odbc_connect={self.params}')
         
     @abstractmethod
     def setup_logging(self, schema: str, table: str, if_exists: str = 'append', index: bool = False, columns: list = None):
-    pass
+        pass
 
     @abstractmethod
     def log_message(self, log_messages: list):
-    pass
+        pass
 
     @abstractmethod
     def write_logging(self):
-    pass
+        pass
     
 class SqlLogger(SqlUtil):
     
@@ -54,6 +54,7 @@ class SqlLogger(SqlUtil):
         self.table = None
         self.if_exists = 'append'
         self.index = False
+        self.columns = None
         
         return
     
@@ -64,27 +65,27 @@ class SqlLogger(SqlUtil):
         self.if_exists = if_exists
         self.index = index 
         self.logging_df = pd.DataFrame(columns=columns)
-        self.log_columns
+        self.columns = columns
 
     
     def log_message(self,log_messages:list):
         
-        if len(log_messages)!= len(self.logging_df.index):
+        if len(log_messages)!= len(self.logging_df.columns):
             raise ValueError(f'Logging message list must have {len(self.logging_df.index)} items')
         
-        new_df = pd.DataFrame(columns=self.columns, data=log_messages)
-        self.logging_df =pd.concat(self.logging_df, new_df,ignore_index=False)
+        new_df = pd.DataFrame(columns = self.columns, data = [log_messages])
+        self.logging_df =pd.concat([self.logging_df, new_df],ignore_index=False)
 
     
     def write_logging(self):
         
-        if self.logging_df is None or self.logging_df.empty
+        if self.logging_df is None or self.logging_df.empty:
             print('No logs to write.')
         
         try:
             rows = len(self.logging_df.index)
-            self.logging_df.to_sql(name=self.schema, con=self.engine, if_exists=self.if_exists, index=self.index)
-            print('Logging succesful:{rows} inserted to {self.schema}.{self.table} ')
+            self.logging_df.to_sql(name=self.table, con=self.engine, if_exists=self.if_exists, index=self.index)
+            print(f'Logging succesful:{rows} inserted to {self.schema}.{self.table} ')
         except Exception as e:
             print(f'Error writing logs to database:{str(e)}')
             raise

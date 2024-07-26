@@ -240,54 +240,22 @@ class OctopusApi(ABC):
         
         return consumption_dict, next_url 
     
-
-    def dataframe_writer(self, spark, container_name, storage_account_name):
-        """
-        Writes consumption data to Azure Blob Storage in Parquet format.
-    
-        This method continuously fetches consumption data from a URL, converts the data into a Spark DataFrame, and writes
-        the DataFrame to Azure Blob Storage in Parquet format. The process continues until there are no more URLs to fetch
-        data from.
-    
-        Args:
-            spark (SparkSession): The SparkSession object used to create DataFrames and write data.
-            container_name (str): The name of the Azure Blob Storage container.
-            storage_account_name (str): The name of the Azure Storage account.
-    
-        Raises:
-            Exception: If there is an error writing the DataFrame to Azure Blob Storage.
-    
-        Notes:
-            - This method expects the instance to have `self.con_url` set to the initial URL to fetch data from.
-            - The method updates `self.con_url` and `self.consumption_dict` with each fetch.
-            - It assumes `self.consumption_get` is a method that fetches data and updates `self.con_url` and `self.consumption_dict`.
-            - The method also assumes `self.elec_details` contains the serial number of the electricity meter.
-            - The method requires PySpark to be configured to access Azure Blob Storage using `wasbs://` protocol.
-    """
+    def generate_dataframe(self, spark):
         
         while self.con_url is not None:
-            
-            self.consumption_dict, self.con_url = self.consumption_get( self.con_url)
             consumption_df = spark.createDataFrame([c for c in self.consumption_dict['results']])
             consumption_df = consumption_df.select('interval_start','interval_end','consumption')
-            
+
             max_date = (consumption_df.agg(F.max(F.col('interval_end'))).collect()[0][0])
             max_date = datetime.strptime(max_date, '%Y-%m-%dT%H:%M:%S%z')
-            year = max_date.year
-            month = max_date.month
             meter = self.elec_details['serial_number'][0]
-            file_date = max_date.strftime('%Y_%M_%d_%H_%M_%S')
-            file_name = f'{meter}_{file_date}'
-            
-            path_to_data = f'{self.util}{meter}/{year}/{month}/{file_name}.parquet'
-            wasbs_path = f"wasbs://{container_name}@{storage_account_name}.blob.core.windows.net/{path_to_data}"
+            file_name = max_date.strftime('%Y_%M_%d_%H_%M_%S')
+            file_path = f'{self.util}_{meter}'
             try:
-                consumption_df.write.mode("overwrite").parquet(wasbs_path)
-            except:
-                print(f'Failed to write file:{file_name}')
-                raise
-            else:
-                print(f'Wrote file: {file_name}')
+                yield consumption_df, file_path, file_name, max_date
             finally:
                 if consumption_df.is_cached:
                         consumption_df.unpersist()
+            if self.con_url is None:
+                break
+            self.consumption_dict, self.con_url = self.consumption_get(self.con_url)
