@@ -1,7 +1,9 @@
 #Testing file
-Test*
+TestSparkJdbc*
+TestLoad*
 TestAPI.ipynb
 storage_test_file.txt
+TestSQLUtils*
 AzureStorageTest.ipynb
 
 # Byte-compiled / optimized / DLL files
