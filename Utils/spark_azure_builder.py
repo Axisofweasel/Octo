@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
@@ -63,6 +65,63 @@ class SparkAzure:
         stringpath = f"wasbs://{self.container_name}@{self.storage_account_name}.blob.core.windows.net/"
 
         return stringpath
+    
+    def jdbc_config(self, SERVER :str = None, DATABASE:str = None):
+        
+        self.JDBC_SERVER = SERVER
+        self.JDBC_DATABASE = DATABASE
+
+        self.JDBCcoconnectionString = connectionString = f'jdbc:sqlserver://{SERVER}:1433;database={DATABASE}'
+        
+        self.spark = self.spark
+        
+        return spark
+    
+    def jdbc_writer(self, DATAFRAME:dataframe = None, TABLE:str=None, USERNAME:str = None, PASSWORD:str = None, TRUNCATE:str ='true', WRITEMODE:str ='overwrite', ENCRYPT:str='false'):
+    
+        if DATAFRAME is None:
+            ValueError('DATAFRAME variable must be a spark dataframe')
+        if TABLE is None:
+            ValueError(f'TABLE variable must be an existing table name in {self.JDBC_SERVER}{self.JDBC_DATABASE} string format')
+        if USERNAME is None:
+            ValueError(f'USERNAME variable must be a valid username for {self.JDBC_SERVER}{self.JDBC_DATABASE} as string')
+        if PASSWORD is None:
+            ValueError(f'PASSWORD variable must be a valid username for {self.JDBC_SERVER}{self.JDBC_DATABASE} as string')
+        if TRUNCATE in ['true','false']:
+            ValueError(f'TRUNCATE value must be true or false')
+        if WRITEMODE in ['overwrite','append','error','errorifexists', 'ignore']:
+            ValueError(f'WRITEMODE must be a string representation of the following: overwrite, append, error, errorifexists, ignore')
+        if TRUNCATE in ['true','false']:
+            ValueError(f'TRUNCATE must be a string value of true or false')
+        if ENCRYPT in ['true','false']:
+            ValueError(f'TRUNCATE must be string value of true or false')
+        
+        try:
+            (DATAFRAME
+             .write
+             .format('jdbc')
+             .option('url',f'{self.connectionString}')
+             .option('dbtable', f'{TABLE}')
+             .option('user',f'{USERNAME}')
+             .option('password',f'{PASSWORD}')
+             .option('encrypt',f'{ENCRYPT}')
+             .option('truncate',f'{TRUNCATE}')
+             .mode(f'{WRITEMODE}')
+             .save())
+
+            count = DATAFRAME.count()
+
+        except ConnectionError() as e:
+            print(f'Failed to connect to {self.JDBC_DATABASE}.{TABLE}:{e}')
+            raise
+        except ConnectionRefusedError() as e:
+            print(f'Connection refused for {self.JDBC_DATABASE}.{TABLE}: {e}')
+            raise
+        except PermissionError() as e:
+            print(f'Incorrect permissions to write to {self.JDBC_DATABASE}.{TABLE}: {e}')
+            raise
+        
+        return print(f'{count} rows written to {self.JDBC_DATABASE}.{TABLE} as {WRITEMODE}')
     
     def kill_spark_session():
         """

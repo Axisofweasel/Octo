@@ -4,6 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+ipykernel = "*"
+requests = "*"
+pyodbc = "*"
+jupyter = "*"
+findspark = "*"
+python-dotenv = "*"
+pyspark = "*"
+pandas = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 
