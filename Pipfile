@@ -13,6 +13,9 @@ python-dotenv = "*"
 pyspark = "*"
 pandas = "*"
 sqlalchemy = "*"
+pytest-mock = "*"
+pytest = "*"
+validators = "*"
 
 [dev-packages]
 
